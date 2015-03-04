@@ -2,23 +2,24 @@ FROM ubuntu:14.10
 MAINTAINER Pritesh Mehta <pritesh@phatforge.com>
 
 # Install percona repo key and setup apt source
-RUN apt-get install -y software-properties-common
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common
 RUN apt-key adv --keyserver keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A ; \
        echo "deb http://repo.percona.com/apt utopic main" > \
          /etc/apt/sources.list.d/percona.list ; \
        echo "deb-src http://repo.percona.com/apt utopic main" >> \
          /etc/apt/sources.list.d/percona.list ; \
-         add-apt-repository ppa:chris-lea/node.js ;
+         add-apt-repository ppa:chris-lea/node.js ; \
+         add-apt-repository ppa:chris-lea/redis-server ;
 
 # Install ruby deps
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
        git curl ca-certificates wget vim ssh \
        autoconf bison build-essential \
        libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev \
        libffi-dev libgdbm3 libgdbm-dev
 
 # Upgrade os packages
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get upgrade -y
 
 ENV RUBY_MAJOR 2.0
 ENV RUBY_VERSION 2.0.0-p598
@@ -35,38 +36,41 @@ RUN mkdir -p /usr/src/ruby \
       && make install \
       && rm -r /usr/src/ruby
 
+# Remove conflicting rake
+RUN DEBIAN_FRONTEND=noninteractive apt-get purge rake libmysqlclient18 \
+      libmysqlclient18
+
+# Install rails deps
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y percona-toolkit \
+       percona-server-client-5.6 libperconaserverclient18.1-dev
+
+# Cleanup apt
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y autoremove && apt-get -y clean \
+      && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 # skip installing gem documentation
 RUN echo 'gem: --no-document' >> "$HOME/.gemrc"
 
 # install things globally, for great justice
-ENV GEM_HOME /usr/local/bundle
-ENV PATH $GEM_HOME/bin:$PATH
-RUN gem install bundler \
-    && bundle config --global path "$GEM_HOME" \
-    && bundle config --global bin "$GEM_HOME/bin"
+RUN gem install bundler
 
-# Install app deps
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y percona-toolkit \
-       percona-server-client-5.6
-
-# Cleanup apt
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# prepare for application source
+RUN mkdir -p /srv/app/script/docker
+WORKDIR /srv/app
 
 # throw errors if Gemfile has been modified since Gemfile.lock
 RUN bundle config --global frozen 1
 
-# prepare for application source
-ONBUILD RUN mkdir -p /srv/app/script/docker
-ONBUILD WORKDIR /srv/app
-
 # Run setup script from source code to install package and gem deps
 ONBUILD COPY Gemfile /srv/app/
 ONBUILD COPY Gemfile.lock /srv/app/
-ONBUILD COPY ./script/docker/setup /srv/app/script/docker/
+ONBUILD COPY ./script/docker/ /srv/app/script/docker/
+ONBUILD RUN ./script/docker/bootstrap
+ONBUILD RUN ./script/docker/bundle_install
 ONBUILD RUN ./script/docker/setup
 
 # Copy in source code
-ONBUILD COPY . /srv/app
+#ONBUILD COPY . /srv/app
 
 ENV RAILS_ENV=production
 EXPOSE 3000
