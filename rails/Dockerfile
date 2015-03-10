@@ -70,8 +70,8 @@ ONBUILD RUN ./script/docker/bundle_install
 ONBUILD RUN ./script/docker/setup
 
 # Copy in source code
-#ONBUILD COPY . /srv/app
+ONBUILD COPY . /srv/app
 
 ENV RAILS_ENV=production
-EXPOSE 3000
+EXPOSE 5000
 CMD bundle exec rake assets:precompile && foreman start -f Procfile
