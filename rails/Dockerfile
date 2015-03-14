@@ -1,6 +1,10 @@
 FROM ubuntu:14.10
 MAINTAINER Pritesh Mehta <pritesh@phatforge.com>
 
+ENV RUBY_MAJOR 2.0
+ENV RUBY_VERSION 2.0.0-p598
+ENV APP_ROOT /srv/app
+
 # Install percona repo key and setup apt source
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common
 RUN apt-key adv --keyserver keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A ; \
@@ -20,9 +24,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
 
 # Upgrade os packages
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get upgrade -y
-
-ENV RUBY_MAJOR 2.0
-ENV RUBY_VERSION 2.0.0-p598
 
 # Install ruby
 RUN mkdir -p /usr/src/ruby \
@@ -62,15 +63,15 @@ WORKDIR /srv/app
 RUN bundle config --global frozen 1
 
 # Run setup script from source code to install package and gem deps
-ONBUILD COPY Gemfile /srv/app/
-ONBUILD COPY Gemfile.lock /srv/app/
-ONBUILD COPY ./script/docker/ /srv/app/script/docker/
+ONBUILD COPY Gemfile ${APP_ROOT}
+ONBUILD COPY Gemfile.lock ${APP_ROOT}
+ONBUILD COPY ./script/docker/ ${APP_ROOT}/script/docker/
 ONBUILD RUN ./script/docker/bootstrap
 ONBUILD RUN ./script/docker/bundle_install
 ONBUILD RUN ./script/docker/setup
 
 # Copy in source code
-ONBUILD COPY . /srv/app
+ONBUILD COPY . ${APP_ROOT}
 
 ENV RAILS_ENV=production
 EXPOSE 5000
