@@ -56,15 +56,15 @@ RUN echo 'gem: --no-document' >> "$HOME/.gemrc"
 RUN gem install bundler
 
 # prepare for application source
-RUN mkdir -p /srv/app/script/docker
-WORKDIR /srv/app
+RUN mkdir -p ${APP_ROOT}/script/docker
+WORKDIR ${APP_ROOT}
 
 # throw errors if Gemfile has been modified since Gemfile.lock
 RUN bundle config --global frozen 1
 
 # Run setup script from source code to install package and gem deps
-ONBUILD COPY Gemfile ${APP_ROOT}
-ONBUILD COPY Gemfile.lock ${APP_ROOT}
+ONBUILD COPY Gemfile ${APP_ROOT}/
+ONBUILD COPY Gemfile.lock ${APP_ROOT}/
 ONBUILD COPY ./script/docker/ ${APP_ROOT}/script/docker/
 ONBUILD RUN ./script/docker/bootstrap
 ONBUILD RUN ./script/docker/bundle_install
