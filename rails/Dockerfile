@@ -63,12 +63,8 @@ WORKDIR ${APP_ROOT}
 RUN bundle config --global frozen 1
 
 # Run setup script from source code to install package and gem deps
-ONBUILD COPY Gemfile ${APP_ROOT}/
-ONBUILD COPY Gemfile.lock ${APP_ROOT}/
 ONBUILD COPY ./script/docker/ ${APP_ROOT}/script/docker/
 ONBUILD RUN ./script/docker/bootstrap
-ONBUILD RUN ./script/docker/bundle_install
-ONBUILD RUN ./script/docker/setup
 
 # Copy in source code
 ONBUILD COPY . ${APP_ROOT}
