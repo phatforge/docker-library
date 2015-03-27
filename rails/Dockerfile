@@ -67,7 +67,7 @@ ONBUILD COPY ./script/docker/ ${APP_ROOT}/script/docker/
 ONBUILD RUN ./script/docker/bootstrap
 
 # Copy in source code
-ONBUILD COPY . ${APP_ROOT}
+#ONBUILD COPY . ${APP_ROOT}
 
 ENV RAILS_ENV=production
 EXPOSE 5000
